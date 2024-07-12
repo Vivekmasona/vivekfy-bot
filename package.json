@@ -1,0 +1,23 @@
+{
+  "name": "telegram-music-bot",
+  "version": "1.0.0",
+  "description": "A Telegram bot for searching and playing music",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js"
+  },
+  "dependencies": {
+    "axios": "^0.21.1",
+    "fs": "0.0.1-security",
+    "node-telegram-bot-api": "^0.30.0",
+    "uuid": "^8.3.2"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "music",
+    "audio"
+  ],
+  "author": "vivek masona",
+  "license": "ISC"
+}
