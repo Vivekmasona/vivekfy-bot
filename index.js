@@ -5,7 +5,7 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid'); // To generate unique file names
 
 // Replace with your actual bot token
-const token = '6679345669:AAELrij30jh93yVhnI-yzqf2krf4QVHCdSs';
+const token = process.env.BOT_TOKEN;
 
 // Create a bot that uses 'polling' to fetch new updates
 const bot = new TelegramBot(token, { polling: true });
