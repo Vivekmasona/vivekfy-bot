@@ -35,8 +35,7 @@ bot.onText(/\/start/, (msg) => {
 
     WELCOME🙏TO VIVEKFY🎧AI BOT!🤖
     
-    Please enter a 🎧song name or 
-    enter a YouTube, Instagram, or Facebook 🔗URL to download or play audio/video
+    Please enter a🎧song name..
     `;
     bot.sendMessage(chatId, welcomeMessage, { parse_mode: 'Markdown' });
 });
