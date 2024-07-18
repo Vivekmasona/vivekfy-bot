@@ -1,0 +1,25 @@
+const TelegramBot = require('node-telegram-bot-api');
+const axios = require('axios');
+
+// Replace with your actual bot token
+const token = '6679345669:AAELrij30jh93yVhnI-yzqf2krf4QVHCdSs';
+
+// Create a bot that uses 'polling' to fetch new updates
+const bot = new TelegramBot(token, { polling: true });
+
+// URL of your Glitch project
+const glitchProjectUrl = 'https://marbled-tasteful-schooner.glitch.me/';
+
+// Function to keep Glitch project active
+const keepGlitchActive = () => {
+    axios.get(glitchProjectUrl)
+        .then(response => {
+            console.log('Pinged Glitch project to keep it active.');
+        })
+        .catch(error => {
+            console.error('Error pinging Glitch project:', error);
+        });
+};
+
+// Ping the Glitch project URL every 5 minutes (300,000 milliseconds)
+setInterval(keepGlitchActive, 300000);
