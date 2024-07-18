@@ -1,7 +1,5 @@
 const TelegramBot = require('node-telegram-bot-api');
 const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
 
 // Replace with your actual bot token
 const token = '6679345669:AAELrij30jh93yVhnI-yzqf2krf4QVHCdSs';
@@ -34,26 +32,20 @@ async function searchSongs(query) {
     }
 }
 
-// Download the audio file
-async function downloadAudio(url, filePath) {
-    const writer = fs.createWriteStream(filePath);
+// Get audio stream
+async function getStream(url) {
     const response = await axios({
         url,
         method: 'GET',
         responseType: 'stream',
     });
-
-    response.data.pipe(writer);
-
-    return new Promise((resolve, reject) => {
-        writer.on('finish', resolve);
-        writer.on('error', reject);
-    });
+    return response.data;
 }
 
 // Handle regular messages (not commands)
 bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
+    const messageId = msg.message_id;
     const text = msg.text.trim();
 
     // Ignore messages that are commands (start with '/')
@@ -70,33 +62,45 @@ bot.on('message', async (msg) => {
         return;
     }
 
+    // Delete the user's query message
+    await bot.deleteMessage(chatId, messageId);
+
     // Otherwise, treat it as a song search query
     const songs = await searchSongs(text);
     if (songs.length > 0) {
-        bot.sendMessage(chatId, `Found ${songs.length} songs. Sending the list...`);
-        
+        const foundMessage = await bot.sendMessage(chatId, `Found ${songs.length} songs. Sending the list...`);
+
         for (const song of songs) {
             const songUrl = song.downloadUrl[1]?.link;
 
             if (songUrl) {
-                const filePath = path.join(__dirname, `${song.name}.m4a`);
-                await downloadAudio(songUrl, filePath);
+                const songMessage = `
+*${song.name}*
+_${song.primaryArtists || 'Unknown Artist'}_
+`;
 
-                bot.sendAudio(chatId, filePath, {
+                // Get audio stream
+                const audioStream = await getStream(songUrl);
+
+                // Send the poster with caption
+                await bot.sendPhoto(chatId, song.image[2]?.link, {
+                    caption: songMessage,
+                    parse_mode: 'Markdown'
+                });
+
+                // Send the audio stream
+                await bot.sendAudio(chatId, audioStream, {
                     title: song.name,
                     performer: song.primaryArtists || 'Unknown Artist'
                 });
 
-                // Optionally, delete the file after sending it
-                fs.unlink(filePath, (err) => {
-                    if (err) {
-                        console.error('Error deleting file:', err);
-                    }
-                });
             } else {
                 bot.sendMessage(chatId, `Sorry, no downloadable URL found for the song: ${song.name}`);
             }
         }
+
+        // Delete the "Found X songs. Sending the list..." message
+        await bot.deleteMessage(chatId, foundMessage.message_id);
     } else {
         bot.sendMessage(chatId, 'No songs found for your query.');
     }
