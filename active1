@@ -23,3 +23,102 @@ const keepGlitchActive = () => {
 
 // Ping the Glitch project URL every 5 minutes (300,000 milliseconds)
 setInterval(keepGlitchActive, 300000);
+
+// Welcome message for new users
+bot.onText(/\/start/, (msg) => {
+    const chatId = msg.chat.id;
+    const firstName = msg.from.first_name;
+    const welcomeMessage = `
+    Hello👋 ${firstName} 🥰babu
+
+    WELCOME🙏TO VIVEKFY🎧AI BOT!🤖
+    
+    Please enter a🎧song name 
+     `;
+    bot.sendMessage(chatId, welcomeMessage, { parse_mode: 'Markdown' });
+});
+
+// Handle song search queries
+async function searchSongs(query) {
+    try {
+        const response = await axios.get(`https://svn-vivekfy.vercel.app/search/songs?query=${encodeURIComponent(query)}`);
+        return response.data?.data?.results || [];
+    } catch (error) {
+        console.error('Error fetching song data:', error);
+        return [];
+    }
+}
+
+// Get audio stream
+async function getStream(url) {
+    const response = await axios({
+        url,
+        method: 'GET',
+        responseType: 'stream',
+    });
+    return response.data;
+}
+
+// Handle regular messages (not commands)
+bot.on('message', async (msg) => {
+    const chatId = msg.chat.id;
+    const messageId = msg.message_id;
+    const text = msg.text.trim();
+
+    // Ignore messages that are commands (start with '/')
+    if (text.startsWith('/')) return;
+
+    // Check if the text is a URL
+    const urlRegex = /https?:\/\/[^\s]+/;
+    if (urlRegex.test(text)) {
+        // Handle URL logic here (e.g., download or fetch details)
+        bot.sendMessage(chatId, 'Processing your URL...');
+
+        // Example: Send the URL as a response
+        bot.sendMessage(chatId, `Here is your URL: ${text}`);
+        return;
+    }
+
+    // Delete the user's query message
+    await bot.deleteMessage(chatId, messageId);
+
+    // Otherwise, treat it as a song search query
+    const songs = await searchSongs(text);
+    if (songs.length > 0) {
+        const foundMessage = await bot.sendMessage(chatId, `Found ${songs.length} songs. Sending the list...`);
+
+        for (const song of songs) {
+            const songUrl = song.downloadUrl[1]?.link;
+
+            if (songUrl) {
+                const songMessage = `
+*${song.name}*
+_${song.primaryArtists || 'Unknown Artist'}_
+`;
+
+                // Get audio stream
+                const audioStream = await getStream(songUrl);
+
+                // Send the poster with caption
+                await bot.sendPhoto(chatId, song.image[2]?.link, {
+                    caption: songMessage,
+                    parse_mode: 'Markdown'
+                });
+
+                // Send the audio stream
+                await bot.sendAudio(chatId, audioStream, {
+                    title: song.name,
+                    performer: song.primaryArtists || 'Unknown Artist'
+                });
+
+            } else {
+                bot.sendMessage(chatId, `Sorry, no downloadable URL found for the song: ${song.name}`);
+            }
+        }
+
+        // Delete the "Found X songs. Sending the list..." message
+        await bot.deleteMessage(chatId, foundMessage.message_id);
+    } else {
+        bot.sendMessage(chatId, 'No songs found for your query.');
+    }
+});
